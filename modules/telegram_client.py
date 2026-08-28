@@ -1,17 +1,25 @@
 # modules/telegram_client.py
 """
-Telegram Bot API client using raw HTTP requests.
+Telegram Bot API client
 
-Provides:
-- Message sending with auto-chunking
-- Message forwarding
-- Rate limit handling
-- Error handling with retry support
+Part 1 features:
+- Send messages
+- Automatic long-message chunking
+- Forward messages
+- Get bot information
+- Get chat information
+- Bot token verification
+- Basic retry support
+- Rate-limit handling
+- Response validation
+- Safe token logging
 """
+
 import logging
 import time
+from typing import Any, Dict, List, Optional
+
 import requests
-from typing import Any, Dict, Optional
 
 from config import Config, get_config
 from utils import retry, chunk_text
@@ -19,13 +27,12 @@ from utils import retry, chunk_text
 logger = logging.getLogger(__name__)
 
 
+# ================================================================
+# EXCEPTIONS
+# ================================================================
+
 class TelegramError(Exception):
-    """Custom exception for Telegram API errors."""
-    pass
-
-
-class TelegramRateLimitError(TelegramError):
-    """Raised when Telegram API rate limit is hit."""
+    """Base exception for Telegram errors."""
     pass
 
 
@@ -34,80 +41,235 @@ class TelegramTimeoutError(TelegramError):
     pass
 
 
+class TelegramRateLimitError(TelegramError):
+    """Raised when Telegram API rate limit is reached."""
+
+    def __init__(
+        self,
+        message: str,
+        retry_after: int = 30,
+    ):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class TelegramResponseError(TelegramError):
+    """Raised when Telegram response is invalid."""
+    pass
+
+
+class TelegramConnectionError(TelegramError):
+    """Raised when connection to Telegram fails."""
+    pass
+
+
+# ================================================================
+# TELEGRAM CLIENT
+# ================================================================
+
 class TelegramClient:
     """
-    Telegram Bot API client.
-    
-    Handles all Telegram operations via HTTP requests.
-    Token is never logged in full - only masked version.
+    Basic Telegram Bot API client for Part 1 Alpha.
+
+    Handles:
+    - sendMessage
+    - forwardMessage
+    - getMe
+    - getChat
+    - bot token verification
+    - message chunking
+    - basic retry
+    - rate limits
     """
-    
-    def __init__(self, config: Optional[Config] = None):
+
+    # Telegram Bot API message limit
+    MAX_MESSAGE_LENGTH = 4096
+
+    # Leave some space so formatting/chunking is safer
+    CHUNK_MAX_LENGTH = 3900
+
+    # Delay between message chunks
+    CHUNK_DELAY = 0.5
+
+    # Default retry settings
+    MAX_ATTEMPTS = 3
+    RETRY_DELAY = 1.0
+    RETRY_BACKOFF = 2.0
+
+    def __init__(
+        self,
+        config: Optional[Config] = None,
+    ):
         """
         Initialize Telegram client.
-        
+
         Args:
-            config: Config instance (uses get_config() if None)
+            config: Config instance.
+            Uses get_config() if not provided.
         """
         self.config = config or get_config()
+
         self.bot_token = self.config.telegram_bot_token
         self.timeout = self.config.telegram_timeout
-        self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
-        
-        # Log masked token for debugging (safe)
-        masked_token = self._mask_token(self.bot_token)
-        logger.debug(f"Telegram client initialized with token: {masked_token}")
-    
+
+        if not self.bot_token:
+            raise TelegramError(
+                "Telegram bot token is missing"
+            )
+
+        self.base_url = (
+            f"https://api.telegram.org/bot{self.bot_token}"
+        )
+
+        logger.debug(
+            "Telegram client initialized: %s",
+            self._mask_token(self.bot_token),
+        )
+
+    # ============================================================
+    # TOKEN
+    # ============================================================
+
     @staticmethod
     def _mask_token(token: str) -> str:
         """
-        Return masked version of token for safe logging.
-        
-        Args:
-            token: Bot token
-        
-        Returns:
-            Masked token (e.g., "1234...abcd")
+        Mask Telegram bot token for logs.
+
+        Example:
+            123456789:ABCDEF...
+            -> 1234...WXYZ
         """
         if not token or len(token) < 10:
             return "***"
+
         return f"{token[:4]}...{token[-4:]}"
-    
-    def _build_url(self, endpoint: str) -> str:
-        """Build full Telegram API URL."""
+
+    # ============================================================
+    # URL
+    # ============================================================
+
+    def _build_url(
+        self,
+        endpoint: str,
+    ) -> str:
+        """Build Telegram API endpoint URL."""
         return f"{self.base_url}/{endpoint}"
-    
-    def _handle_rate_limit(self, response: requests.Response) -> None:
+
+    # ============================================================
+    # RATE LIMIT
+    # ============================================================
+
+    @staticmethod
+    def _get_retry_after(
+        response: requests.Response,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> int:
         """
-        Handle HTTP 429 rate limit.
-        
-        Extracts retry_after from headers or uses default wait time.
-        
-        Args:
-            response: HTTP response
-        
-        Raises:
-            TelegramRateLimitError: Always raised after logging
+        Extract Telegram retry_after value.
+
+        Checks:
+        1. JSON parameters.retry_after
+        2. Retry-After HTTP header
+        3. Defaults to 30 seconds
         """
-        retry_after = response.headers.get("retry-after")
-        
-        if retry_after:
+
+        # Telegram JSON response
+        if isinstance(data, dict):
+
+            parameters = data.get("parameters")
+
+            if isinstance(parameters, dict):
+
+                retry_after = parameters.get(
+                    "retry_after"
+                )
+
+                if retry_after is not None:
+                    try:
+                        return max(
+                            1,
+                            int(retry_after),
+                        )
+                    except (
+                        TypeError,
+                        ValueError,
+                    ):
+                        pass
+
+        # HTTP header
+        header_value = response.headers.get(
+            "Retry-After"
+        )
+
+        if header_value:
             try:
-                wait_time = int(retry_after)
-            except ValueError:
-                wait_time = 30
-        else:
-            wait_time = 30
-        
-        logger.warning(f"Rate limited. Waiting {wait_time}s before retry")
-        time.sleep(wait_time)
-        raise TelegramRateLimitError(f"Rate limited. Retry after {wait_time}s")
-    
+                return max(
+                    1,
+                    int(header_value),
+                )
+            except (
+                TypeError,
+                ValueError,
+            ):
+                pass
+
+        return 30
+
+    # ============================================================
+    # RESPONSE VALIDATION
+    # ============================================================
+
+    @staticmethod
+    def _validate_response(
+        data: Any,
+    ) -> Dict[str, Any]:
+        """
+        Validate Telegram API response.
+        """
+
+        if not isinstance(data, dict):
+            raise TelegramResponseError(
+                "Telegram response is not a JSON object"
+            )
+
+        if not data.get("ok", False):
+
+            error_code = data.get(
+                "error_code",
+                "unknown",
+            )
+
+            description = data.get(
+                "description",
+                "Unknown Telegram error",
+            )
+
+            raise TelegramError(
+                f"Telegram API error "
+                f"({error_code}): {description}"
+            )
+
+        if "result" not in data:
+            raise TelegramResponseError(
+                "Telegram response missing result"
+            )
+
+        return data
+
+    # ============================================================
+    # HTTP REQUEST
+    # ============================================================
+
     @retry(
-        max_attempts=3,
-        delay=1.0,
-        backoff=2.0,
-        exceptions=(requests.RequestException, TelegramRateLimitError),
+        max_attempts=MAX_ATTEMPTS,
+        delay=RETRY_DELAY,
+        backoff=RETRY_BACKOFF,
+        exceptions=(
+            TelegramTimeoutError,
+            TelegramConnectionError,
+            TelegramRateLimitError,
+            requests.RequestException,
+        ),
     )
     def _make_request(
         self,
@@ -116,50 +278,153 @@ class TelegramClient:
         data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Make request to Telegram Bot API.
-        
-        Args:
-            method: HTTP method (GET or POST)
-            endpoint: API endpoint
-            data: Request payload
-        
-        Returns:
-            API response JSON
-        
-        Raises:
-            TelegramTimeoutError: If request times out
-            TelegramRateLimitError: If rate limited
-            TelegramError: For other API errors
+        Make HTTP request to Telegram API.
         """
+
         url = self._build_url(endpoint)
-        
+
         try:
-            if method.upper() == "GET":
-                response = requests.get(url, params=data, timeout=self.timeout)
+
+            method = method.upper()
+
+            if method == "GET":
+
+                response = requests.get(
+                    url,
+                    params=data,
+                    timeout=self.timeout,
+                )
+
+            elif method == "POST":
+
+                response = requests.post(
+                    url,
+                    json=data,
+                    timeout=self.timeout,
+                )
+
             else:
-                response = requests.post(url, json=data, timeout=self.timeout)
-            
-            # Handle rate limiting
-            if response.status_code == 429:
-                self._handle_rate_limit(response)
-            
-            response.raise_for_status()
-            result = response.json()
-            
-            if not result.get("ok", False):
-                error_msg = result.get("description", "Unknown error")
-                logger.error(f"Telegram API error: {error_msg}")
-                raise TelegramError(f"Telegram API error: {error_msg}")
-            
-            return result
-            
-        except requests.Timeout:
-            logger.error(f"Telegram API timeout after {self.timeout}s")
-            raise TelegramTimeoutError(f"Timeout after {self.timeout}s")
+                raise TelegramError(
+                    f"Unsupported HTTP method: {method}"
+                )
+
+        except requests.Timeout as e:
+
+            logger.warning(
+                "Telegram request timeout after %ss",
+                self.timeout,
+            )
+
+            raise TelegramTimeoutError(
+                f"Telegram timeout after "
+                f"{self.timeout}s"
+            ) from e
+
+        except requests.ConnectionError as e:
+
+            logger.warning(
+                "Telegram connection error: %s",
+                e,
+            )
+
+            raise TelegramConnectionError(
+                f"Telegram connection failed: {e}"
+            ) from e
+
         except requests.RequestException as e:
-            logger.error(f"Telegram request failed: {e}")
-            raise TelegramError(f"Request failed: {e}")
-    
+
+            logger.warning(
+                "Telegram request error: %s",
+                e,
+            )
+
+            raise
+
+        # --------------------------------------------------------
+        # Parse JSON
+        # --------------------------------------------------------
+
+        try:
+            result = response.json()
+
+        except ValueError as e:
+
+            raise TelegramResponseError(
+                "Telegram returned invalid JSON"
+            ) from e
+
+        # --------------------------------------------------------
+        # Rate limit
+        # --------------------------------------------------------
+
+        if response.status_code == 429:
+
+            retry_after = self._get_retry_after(
+                response,
+                result,
+            )
+
+            logger.warning(
+                "Telegram rate limit. "
+                "Waiting %ss",
+                retry_after,
+            )
+
+            # Wait according to Telegram
+            time.sleep(retry_after)
+
+            raise TelegramRateLimitError(
+                f"Rate limited. "
+                f"Retry after {retry_after}s",
+                retry_after=retry_after,
+            )
+
+        # --------------------------------------------------------
+        # Server errors
+        # --------------------------------------------------------
+
+        if response.status_code >= 500:
+
+            logger.warning(
+                "Telegram server error: HTTP %s",
+                response.status_code,
+            )
+
+            raise TelegramError(
+                f"Telegram server error: "
+                f"HTTP {response.status_code}"
+            )
+
+        # --------------------------------------------------------
+        # Client errors
+        # --------------------------------------------------------
+
+        if response.status_code >= 400:
+
+            description = "Unknown Telegram error"
+
+            if isinstance(result, dict):
+                description = result.get(
+                    "description",
+                    description,
+                )
+
+            raise TelegramError(
+                f"Telegram HTTP error "
+                f"{response.status_code}: "
+                f"{description}"
+            )
+
+        # --------------------------------------------------------
+        # Validate
+        # --------------------------------------------------------
+
+        return self._validate_response(result)
+
+    # ============================================================
+    # SEND MESSAGE
+    # ============================================================
+
     def send_message(
         self,
         chat_id: str,
@@ -168,47 +433,133 @@ class TelegramClient:
         disable_preview: bool = True,
     ) -> Optional[Dict[str, Any]]:
         """
-        Send text message to a chat.
-        
-        Automatically splits long messages into chunks.
-        Adds delay between chunks to avoid rate limits.
-        
+        Send message to Telegram.
+
+        Long messages are automatically split.
+
         Args:
-            chat_id: Chat ID or channel username
-            text: Message text
-            parse_mode: "HTML" or "Markdown"
-            disable_preview: Disable web page preview
-        
+            chat_id:
+                Telegram chat ID or @username.
+
+            text:
+                Message content.
+
+            parse_mode:
+                HTML, Markdown, MarkdownV2 or None.
+
+            disable_preview:
+                Disable web page preview.
+
         Returns:
-            API response for last chunk, or None if no chunks
+            Telegram response of the last chunk.
         """
-        chunks = chunk_text(text)
-        results = []
-        
-        logger.debug(f"Sending message to {chat_id} ({len(chunks)} chunks)")
-        
-        for i, chunk in enumerate(chunks):
-            payload = {
+
+        if not chat_id:
+            raise TelegramError(
+                "chat_id is required"
+            )
+
+        if not text or not text.strip():
+
+            logger.warning(
+                "Cannot send empty Telegram message"
+            )
+
+            return None
+
+        chunks = chunk_text(
+            text,
+            max_length=self.CHUNK_MAX_LENGTH,
+        )
+
+        logger.debug(
+            "Sending Telegram message to %s "
+            "(%s chunk(s))",
+            chat_id,
+            len(chunks),
+        )
+
+        results: List[Dict[str, Any]] = []
+
+        for index, chunk in enumerate(
+            chunks,
+            start=1,
+        ):
+
+            payload: Dict[str, Any] = {
                 "chat_id": chat_id,
                 "text": chunk,
-                "parse_mode": parse_mode,
-                "disable_web_page_preview": disable_preview,
+                "disable_web_page_preview":
+                    disable_preview,
             }
-            
+
+            if parse_mode:
+                payload["parse_mode"] = parse_mode
+
             try:
-                result = self._make_request("POST", "sendMessage", payload)
+
+                result = self._make_request(
+                    "POST",
+                    "sendMessage",
+                    payload,
+                )
+
+                # Verify message object
+                telegram_result = result.get(
+                    "result"
+                )
+
+                if not isinstance(
+                    telegram_result,
+                    dict,
+                ):
+                    raise TelegramResponseError(
+                        "sendMessage result is invalid"
+                    )
+
+                message_id = telegram_result.get(
+                    "message_id"
+                )
+
+                if message_id is None:
+                    raise TelegramResponseError(
+                        "sendMessage response "
+                        "missing message_id"
+                    )
+
                 results.append(result)
-            except TelegramError as e:
-                logger.error(f"Failed to send chunk {i+1}/{len(chunks)}: {e}")
-                # Continue with next chunk even if one fails
-                continue
-            
-            # Rate limit protection between chunks
-            if len(chunks) > 1 and i < len(chunks) - 1:
-                time.sleep(1)
-        
-        return results[-1] if results else None
-    
+
+                logger.info(
+                    "Telegram message sent "
+                    "(chunk %s/%s, message_id=%s)",
+                    index,
+                    len(chunks),
+                    message_id,
+                )
+
+            except TelegramError:
+                logger.exception(
+                    "Failed to send Telegram "
+                    "message chunk %s/%s",
+                    index,
+                    len(chunks),
+                )
+                raise
+
+            if (
+                len(chunks) > 1
+                and index < len(chunks)
+            ):
+                time.sleep(
+                    self.CHUNK_DELAY
+                )
+
+        return results[-1]
+
+    # ============================================================
+    # FORWARD MESSAGE
+    # ============================================================
+
     def forward_message(
         self,
         from_chat_id: str,
@@ -216,69 +567,157 @@ class TelegramClient:
         to_chat_id: str,
     ) -> Dict[str, Any]:
         """
-        Forward a message from one chat to another.
-        
-        Args:
-            from_chat_id: Source chat ID
-            message_id: Message ID to forward
-            to_chat_id: Destination chat ID
-        
-        Returns:
-            API response
+        Forward Telegram message.
         """
+
+        if not from_chat_id:
+            raise TelegramError(
+                "from_chat_id is required"
+            )
+
+        if not to_chat_id:
+            raise TelegramError(
+                "to_chat_id is required"
+            )
+
+        if (
+            not isinstance(message_id, int)
+            or message_id <= 0
+        ):
+            raise TelegramError(
+                f"Invalid message_id: {message_id}"
+            )
+
         payload = {
             "chat_id": to_chat_id,
             "from_chat_id": from_chat_id,
             "message_id": message_id,
         }
-        
+
         logger.debug(
-            f"Forwarding message {message_id} from {from_chat_id} to {to_chat_id}"
+            "Forwarding message %s "
+            "from %s to %s",
+            message_id,
+            from_chat_id,
+            to_chat_id,
         )
-        return self._make_request("POST", "forwardMessage", payload)
-    
+
+        return self._make_request(
+            "POST",
+            "forwardMessage",
+            payload,
+        )
+
+    # ============================================================
+    # GET ME
+    # ============================================================
+
     def get_me(self) -> Dict[str, Any]:
-        """Get bot information."""
-        return self._make_request("GET", "getMe")
-    
-    def get_chat(self, chat_id: str) -> Dict[str, Any]:
         """
-        Get chat information.
-        
-        Args:
-            chat_id: Chat ID
-        
-        Returns:
-            Chat information
+        Get Telegram bot information.
         """
-        return self._make_request("GET", "getChat", {"chat_id": chat_id})
-    
+
+        return self._make_request(
+            "GET",
+            "getMe",
+        )
+
+    # ============================================================
+    # GET CHAT
+    # ============================================================
+
+    def get_chat(
+        self,
+        chat_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Get Telegram chat information.
+        """
+
+        if not chat_id:
+            raise TelegramError(
+                "chat_id is required"
+            )
+
+        return self._make_request(
+            "GET",
+            "getChat",
+            {
+                "chat_id": chat_id,
+            },
+        )
+
+    # ============================================================
+    # VERIFY BOT
+    # ============================================================
+
     def verify_bot_token(self) -> bool:
         """
-        Verify if bot token is valid.
-        
+        Verify Telegram bot token.
+
         Returns:
-            True if token is valid
+            True if valid.
+            False otherwise.
         """
+
         try:
+
             result = self.get_me()
-            if result and result.get("ok"):
-                bot_info = result.get("result", {})
-                logger.info(f"Bot verified: @{bot_info.get('username', 'unknown')}")
-                return True
+
+            bot_info = result.get(
+                "result"
+            )
+
+            if not isinstance(
+                bot_info,
+                dict,
+            ):
+                logger.error(
+                    "Invalid bot information"
+                )
+                return False
+
+            username = bot_info.get(
+                "username",
+                "unknown",
+            )
+
+            logger.info(
+                "Telegram bot verified: @%s",
+                username,
+            )
+
+            return True
+
+        except TelegramError as e:
+
+            logger.error(
+                "Telegram bot verification failed: %s",
+                e,
+            )
+
             return False
-        except TelegramError:
+
+        except Exception:
+
+            logger.exception(
+                "Unexpected bot verification error"
+            )
+
             return False
 
 
-def create_telegram_client(config: Optional[Config] = None) -> TelegramClient:
+# ================================================================
+# FACTORY
+# ================================================================
+
+def create_telegram_client(
+    config: Optional[Config] = None,
+) -> TelegramClient:
     """
     Factory function for TelegramClient.
-    
-    Args:
-        config: Optional Config instance
-    
-    Returns:
-        TelegramClient instance
     """
-    return TelegramClient(config)
+
+    return TelegramClient(
+        config=config
+)
