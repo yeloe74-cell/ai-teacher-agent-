@@ -1,0 +1,158 @@
+{
+  "month": "python_month_1",
+  "language": "Python",
+  "description": "Python Programming for Absolute Beginners",
+  "total_days": 30,
+  "days": [
+    {
+      "day": 1,
+      "morning_lesson": "Introduction to Programming and Python",
+      "evening_practice": "Setting up Python environment and writing the first program"
+    },
+    {
+      "day": 2,
+      "morning_lesson": "Variables and Data Types in Python",
+      "evening_practice": "Practice with variables and basic data types"
+    },
+    {
+      "day": 3,
+      "morning_lesson": "Numbers and Basic Math Operations",
+      "evening_practice": "Math calculations and number exercises"
+    },
+    {
+      "day": 4,
+      "morning_lesson": "Strings and Text Manipulation",
+      "evening_practice": "String methods and text exercises"
+    },
+    {
+      "day": 5,
+      "morning_lesson": "Lists - Part 1: Creating and Accessing",
+      "evening_practice": "Basic list operations practice"
+    },
+    {
+      "day": 6,
+      "morning_lesson": "Lists - Part 2: Methods and Operations",
+      "evening_practice": "List methods practice exercises"
+    },
+    {
+      "day": 7,
+      "morning_lesson": "Tuples and Sets",
+      "evening_practice": "Tuple and set practice"
+    },
+    {
+      "day": 8,
+      "morning_lesson": "Dictionaries - Part 1: Key-Value Pairs",
+      "evening_practice": "Basic dictionary operations"
+    },
+    {
+      "day": 9,
+      "morning_lesson": "Dictionaries - Part 2: Methods and Iteration",
+      "evening_practice": "Dictionary methods practice"
+    },
+    {
+      "day": 10,
+      "morning_lesson": "If-Else Conditional Statements",
+      "evening_practice": "Conditional logic exercises"
+    },
+    {
+      "day": 11,
+      "morning_lesson": "Elif and Nested Conditionals",
+      "evening_practice": "Complex conditional exercises"
+    },
+    {
+      "day": 12,
+      "morning_lesson": "For Loops - Part 1: Basic Iteration",
+      "evening_practice": "Basic loop exercises"
+    },
+    {
+      "day": 13,
+      "morning_lesson": "For Loops - Part 2: Lists and Strings",
+      "evening_practice": "Looping through sequences practice"
+    },
+    {
+      "day": 14,
+      "morning_lesson": "While Loops and Loop Control",
+      "evening_practice": "While loop exercises"
+    },
+    {
+      "day": 15,
+      "morning_lesson": "Mid-Month Review and Practice",
+      "evening_practice": "Comprehensive review exercises"
+    },
+    {
+      "day": 16,
+      "morning_lesson": "Functions - Part 1: Creating and Calling",
+      "evening_practice": "Basic function exercises"
+    },
+    {
+      "day": 17,
+      "morning_lesson": "Functions - Part 2: Parameters and Return Values",
+      "evening_practice": "Functions with parameters practice"
+    },
+    {
+      "day": 18,
+      "morning_lesson": "Functions - Part 3: Scope and Best Practices",
+      "evening_practice": "Function scope exercises"
+    },
+    {
+      "day": 19,
+      "morning_lesson": "Modules and Importing",
+      "evening_practice": "Module and import practice"
+    },
+    {
+      "day": 20,
+      "morning_lesson": "Error Handling with Try and Except",
+      "evening_practice": "Exception handling exercises"
+    },
+    {
+      "day": 21,
+      "morning_lesson": "File Handling - Reading Files",
+      "evening_practice": "File reading exercises"
+    },
+    {
+      "day": 22,
+      "morning_lesson": "File Handling - Writing Files",
+      "evening_practice": "File writing exercises"
+    },
+    {
+      "day": 23,
+      "morning_lesson": "String Formatting and F-Strings",
+      "evening_practice": "String formatting practice"
+    },
+    {
+      "day": 24,
+      "morning_lesson": "List Comprehensions",
+      "evening_practice": "List comprehension exercises"
+    },
+    {
+      "day": 25,
+      "morning_lesson": "Working with JSON Data",
+      "evening_practice": "JSON parsing and data handling exercises"
+    },
+    {
+      "day": 26,
+      "morning_lesson": "Introduction to Classes and Objects",
+      "evening_practice": "Basic class and object exercises"
+    },
+    {
+      "day": 27,
+      "morning_lesson": "Classes - Methods and Attributes",
+      "evening_practice": "Class methods and attributes practice"
+    },
+    {
+      "day": 28,
+      "morning_lesson": "Final Project Planning - Expense Tracker",
+      "evening_practice": "Project structure and feature planning"
+    },
+    {
+      "day": 29,
+      "morning_lesson": "Final Project Implementation - Part 1",
+      "evening_practice": "Build core project features"
+    },
+    {
+      "day": 30,
+      "morning_lesson": "Final Project Implementation - Part 2 and Review",
+      "evening_practice": "Complete the project and final review"
+    }
+  ]
+    }
