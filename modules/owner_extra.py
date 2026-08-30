@@ -88,7 +88,7 @@ class OwnerExtra:
     ) -> bool:
         """
         Dispatch extra commands.
-        
+
         Returns:
             True if command was handled.
             False if command is not an extra command.
@@ -249,6 +249,7 @@ class OwnerExtra:
 # FACTORY
 # ============================================================
 
+
 def create_owner_extra(
     config: Optional[Config] = None,
     database: Optional[DatabaseInterface] = None,
@@ -265,4 +266,4 @@ def create_owner_extra(
         groups=groups,
         agent=agent,
         student_system=student_system,
-          )
+    )

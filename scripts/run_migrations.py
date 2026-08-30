@@ -18,7 +18,6 @@ import sys
 from pathlib import Path
 from typing import List, Set
 
-
 # ============================================================
 # PATHS
 # ============================================================
@@ -54,6 +53,7 @@ def setup_logging() -> None:
 # DATABASE CONFIG
 # ============================================================
 
+
 def get_db_path() -> Path:
     """
     Get SQLite database path.
@@ -71,9 +71,7 @@ def get_db_path() -> Path:
         return PROJECT_ROOT / config.sqlite_db_path
 
     except Exception as exc:
-        logger.warning(
-            f"Could not load database path from config: {exc}"
-        )
+        logger.warning(f"Could not load database path from config: {exc}")
 
         return PROJECT_ROOT / "data" / "app.db"
 
@@ -82,24 +80,19 @@ def get_db_path() -> Path:
 # MIGRATION FILES
 # ============================================================
 
+
 def get_migration_files(
     migrations_dir: Path,
 ) -> List[Path]:
     """Return all SQL migration files sorted by filename."""
 
     if not migrations_dir.exists():
-        logger.error(
-            f"Migrations directory not found: {migrations_dir}"
-        )
+        logger.error(f"Migrations directory not found: {migrations_dir}")
         return []
 
-    files = sorted(
-        migrations_dir.glob("*.sql")
-    )
+    files = sorted(migrations_dir.glob("*.sql"))
 
-    logger.info(
-        f"Found {len(files)} migration file(s)."
-    )
+    logger.info(f"Found {len(files)} migration file(s).")
 
     return files
 
@@ -108,20 +101,19 @@ def get_migration_files(
 # MIGRATION TRACKING
 # ============================================================
 
+
 def init_migrations_table(
     conn: sqlite3.Connection,
 ) -> None:
     """Create schema_migrations table."""
 
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT UNIQUE NOT NULL,
             applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        """
-    )
+        """)
 
     conn.commit()
 
@@ -131,25 +123,21 @@ def get_applied_migrations(
 ) -> Set[str]:
     """Return names of already-applied migrations."""
 
-    cursor = conn.execute(
-        """
+    cursor = conn.execute("""
         SELECT filename
         FROM schema_migrations
         ORDER BY id
-        """
-    )
+        """)
 
     rows = cursor.fetchall()
 
-    return {
-        row[0]
-        for row in rows
-    }
+    return {row[0] for row in rows}
 
 
 # ============================================================
 # SQL HELPERS
 # ============================================================
+
 
 def split_sql_statements(
     sql: str,
@@ -196,16 +184,11 @@ def column_exists(
 ) -> bool:
     """Check whether a column already exists."""
 
-    cursor = conn.execute(
-        f"PRAGMA table_info({table})"
-    )
+    cursor = conn.execute(f"PRAGMA table_info({table})")
 
     columns = cursor.fetchall()
 
-    return any(
-        row[1] == column
-        for row in columns
-    )
+    return any(row[1] == column for row in columns)
 
 
 def is_add_column_statement(
@@ -213,14 +196,9 @@ def is_add_column_statement(
 ) -> bool:
     """Check whether SQL is ALTER TABLE ... ADD COLUMN."""
 
-    normalized = " ".join(
-        statement.upper().split()
-    )
+    normalized = " ".join(statement.upper().split())
 
-    return (
-        normalized.startswith("ALTER TABLE ")
-        and " ADD COLUMN " in normalized
-    )
+    return normalized.startswith("ALTER TABLE ") and " ADD COLUMN " in normalized
 
 
 def handle_add_column(
@@ -235,10 +213,7 @@ def handle_add_column(
 
     parts = statement.split()
 
-    upper_parts = [
-        part.upper()
-        for part in parts
-    ]
+    upper_parts = [part.upper() for part in parts]
 
     try:
         table_index = upper_parts.index("TABLE")
@@ -255,25 +230,16 @@ def handle_add_column(
             table_name,
             column_name,
         ):
-            logger.info(
-                f"Column already exists: "
-                f"{table_name}.{column_name}"
-            )
+            logger.info(f"Column already exists: " f"{table_name}.{column_name}")
             return
 
         conn.execute(statement)
 
-        logger.info(
-            f"Added column: "
-            f"{table_name}.{column_name}"
-        )
+        logger.info(f"Added column: " f"{table_name}.{column_name}")
 
     except (ValueError, IndexError):
 
-        logger.warning(
-            "Could not parse ALTER TABLE statement. "
-            "Executing directly."
-        )
+        logger.warning("Could not parse ALTER TABLE statement. " "Executing directly.")
 
         conn.execute(statement)
 
@@ -281,6 +247,7 @@ def handle_add_column(
 # ============================================================
 # APPLY MIGRATION
 # ============================================================
+
 
 def apply_migration(
     conn: sqlite3.Connection,
@@ -296,26 +263,18 @@ def apply_migration(
 
     filename = file_path.name
 
-    logger.info(
-        f"Applying migration: {filename}"
-    )
+    logger.info(f"Applying migration: {filename}")
 
     try:
-        sql = file_path.read_text(
-            encoding="utf-8"
-        ).strip()
+        sql = file_path.read_text(encoding="utf-8").strip()
 
         if not sql:
-            raise ValueError(
-                f"Migration file is empty: {filename}"
-            )
+            raise ValueError(f"Migration file is empty: {filename}")
 
         statements = split_sql_statements(sql)
 
         if not statements:
-            raise ValueError(
-                f"No SQL statements found: {filename}"
-            )
+            raise ValueError(f"No SQL statements found: {filename}")
 
         # Start transaction.
         conn.execute("BEGIN")
@@ -346,9 +305,7 @@ def apply_migration(
 
         conn.commit()
 
-        logger.info(
-            f"✅ Applied: {filename}"
-        )
+        logger.info(f"✅ Applied: {filename}")
 
         return True
 
@@ -356,13 +313,9 @@ def apply_migration(
 
         conn.rollback()
 
-        logger.error(
-            f"❌ Failed: {filename}"
-        )
+        logger.error(f"❌ Failed: {filename}")
 
-        logger.error(
-            f"Reason: {exc}"
-        )
+        logger.error(f"Reason: {exc}")
 
         return False
 
@@ -370,6 +323,7 @@ def apply_migration(
 # ============================================================
 # RUN MIGRATIONS
 # ============================================================
+
 
 def run_migrations(
     db_path: Path | None = None,
@@ -389,56 +343,35 @@ def run_migrations(
         exist_ok=True,
     )
 
-    migration_files = get_migration_files(
-        migrations_dir
-    )
+    migration_files = get_migration_files(migrations_dir)
 
     if not migration_files:
-        logger.warning(
-            "No migration files found."
-        )
+        logger.warning("No migration files found.")
         return True
 
-    logger.info(
-        f"Database: {db_path}"
-    )
+    logger.info(f"Database: {db_path}")
 
-    conn = sqlite3.connect(
-        str(db_path)
-    )
+    conn = sqlite3.connect(str(db_path))
 
     try:
 
         # Enable foreign keys.
-        conn.execute(
-            "PRAGMA foreign_keys = ON"
-        )
+        conn.execute("PRAGMA foreign_keys = ON")
 
         # Create migration tracking table.
         init_migrations_table(conn)
 
-        applied = get_applied_migrations(
-            conn
-        )
+        applied = get_applied_migrations(conn)
 
-        pending = [
-            file
-            for file in migration_files
-            if file.name not in applied
-        ]
+        pending = [file for file in migration_files if file.name not in applied]
 
         if not pending:
 
-            logger.info(
-                "Database is already up to date."
-            )
+            logger.info("Database is already up to date.")
 
             return True
 
-        logger.info(
-            f"Pending migrations: "
-            f"{len(pending)}"
-        )
+        logger.info(f"Pending migrations: " f"{len(pending)}")
 
         # Run migrations in order.
         for migration in pending:
@@ -450,28 +383,17 @@ def run_migrations(
 
             if not success:
 
-                logger.error(
-                    "🛑 Migration process stopped."
-                )
+                logger.error("🛑 Migration process stopped.")
 
-                logger.error(
-                    f"Failed migration: "
-                    f"{migration.name}"
-                )
+                logger.error(f"Failed migration: " f"{migration.name}")
 
                 return False
 
-        logger.info(
-            "=" * 50
-        )
+        logger.info("=" * 50)
 
-        logger.info(
-            "✅ All migrations completed successfully."
-        )
+        logger.info("✅ All migrations completed successfully.")
 
-        logger.info(
-            "=" * 50
-        )
+        logger.info("=" * 50)
 
         return True
 
@@ -484,22 +406,17 @@ def run_migrations(
 # MAIN
 # ============================================================
 
+
 def main() -> None:
     """CLI entry point."""
 
     setup_logging()
 
-    logger.info(
-        "=" * 50
-    )
+    logger.info("=" * 50)
 
-    logger.info(
-        "AI Teacher Bot - Database Migration"
-    )
+    logger.info("AI Teacher Bot - Database Migration")
 
-    logger.info(
-        "=" * 50
-    )
+    logger.info("=" * 50)
 
     try:
 
@@ -507,29 +424,21 @@ def main() -> None:
 
         if not success:
 
-            logger.error(
-                "❌ Migration process failed."
-            )
+            logger.error("❌ Migration process failed.")
 
             sys.exit(1)
 
-        logger.info(
-            "Migration process finished."
-        )
+        logger.info("Migration process finished.")
 
     except KeyboardInterrupt:
 
-        logger.warning(
-            "Migration cancelled by user."
-        )
+        logger.warning("Migration cancelled by user.")
 
         sys.exit(130)
 
     except Exception as exc:
 
-        logger.exception(
-            f"Unexpected migration error: {exc}"
-        )
+        logger.exception(f"Unexpected migration error: {exc}")
 
         sys.exit(1)
 

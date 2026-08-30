@@ -31,13 +31,16 @@ logger = logging.getLogger(__name__)
 # EXCEPTIONS
 # ================================================================
 
+
 class TelegramError(Exception):
     """Base exception for Telegram errors."""
+
     pass
 
 
 class TelegramTimeoutError(TelegramError):
     """Raised when Telegram API request times out."""
+
     pass
 
 
@@ -55,17 +58,20 @@ class TelegramRateLimitError(TelegramError):
 
 class TelegramResponseError(TelegramError):
     """Raised when Telegram response is invalid."""
+
     pass
 
 
 class TelegramConnectionError(TelegramError):
     """Raised when connection to Telegram fails."""
+
     pass
 
 
 # ================================================================
 # TELEGRAM CLIENT
 # ================================================================
+
 
 class TelegramClient:
     """
@@ -113,13 +119,9 @@ class TelegramClient:
         self.timeout = self.config.telegram_timeout
 
         if not self.bot_token:
-            raise TelegramError(
-                "Telegram bot token is missing"
-            )
+            raise TelegramError("Telegram bot token is missing")
 
-        self.base_url = (
-            f"https://api.telegram.org/bot{self.bot_token}"
-        )
+        self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
 
         logger.debug(
             "Telegram client initialized: %s",
@@ -180,9 +182,7 @@ class TelegramClient:
 
             if isinstance(parameters, dict):
 
-                retry_after = parameters.get(
-                    "retry_after"
-                )
+                retry_after = parameters.get("retry_after")
 
                 if retry_after is not None:
                     try:
@@ -197,9 +197,7 @@ class TelegramClient:
                         pass
 
         # HTTP header
-        header_value = response.headers.get(
-            "Retry-After"
-        )
+        header_value = response.headers.get("Retry-After")
 
         if header_value:
             try:
@@ -228,9 +226,7 @@ class TelegramClient:
         """
 
         if not isinstance(data, dict):
-            raise TelegramResponseError(
-                "Telegram response is not a JSON object"
-            )
+            raise TelegramResponseError("Telegram response is not a JSON object")
 
         if not data.get("ok", False):
 
@@ -244,15 +240,10 @@ class TelegramClient:
                 "Unknown Telegram error",
             )
 
-            raise TelegramError(
-                f"Telegram API error "
-                f"({error_code}): {description}"
-            )
+            raise TelegramError(f"Telegram API error " f"({error_code}): {description}")
 
         if "result" not in data:
-            raise TelegramResponseError(
-                "Telegram response missing result"
-            )
+            raise TelegramResponseError("Telegram response missing result")
 
         return data
 
@@ -304,9 +295,7 @@ class TelegramClient:
                 )
 
             else:
-                raise TelegramError(
-                    f"Unsupported HTTP method: {method}"
-                )
+                raise TelegramError(f"Unsupported HTTP method: {method}")
 
         except requests.Timeout as e:
 
@@ -316,8 +305,7 @@ class TelegramClient:
             )
 
             raise TelegramTimeoutError(
-                f"Telegram timeout after "
-                f"{self.timeout}s"
+                f"Telegram timeout after " f"{self.timeout}s"
             ) from e
 
         except requests.ConnectionError as e:
@@ -327,9 +315,7 @@ class TelegramClient:
                 e,
             )
 
-            raise TelegramConnectionError(
-                f"Telegram connection failed: {e}"
-            ) from e
+            raise TelegramConnectionError(f"Telegram connection failed: {e}") from e
 
         except requests.RequestException as e:
 
@@ -349,9 +335,7 @@ class TelegramClient:
 
         except ValueError as e:
 
-            raise TelegramResponseError(
-                "Telegram returned invalid JSON"
-            ) from e
+            raise TelegramResponseError("Telegram returned invalid JSON") from e
 
         # --------------------------------------------------------
         # Rate limit
@@ -365,8 +349,7 @@ class TelegramClient:
             )
 
             logger.warning(
-                "Telegram rate limit. "
-                "Waiting %ss",
+                "Telegram rate limit. " "Waiting %ss",
                 retry_after,
             )
 
@@ -374,8 +357,7 @@ class TelegramClient:
             time.sleep(retry_after)
 
             raise TelegramRateLimitError(
-                f"Rate limited. "
-                f"Retry after {retry_after}s",
+                f"Rate limited. " f"Retry after {retry_after}s",
                 retry_after=retry_after,
             )
 
@@ -391,8 +373,7 @@ class TelegramClient:
             )
 
             raise TelegramError(
-                f"Telegram server error: "
-                f"HTTP {response.status_code}"
+                f"Telegram server error: " f"HTTP {response.status_code}"
             )
 
         # --------------------------------------------------------
@@ -410,9 +391,7 @@ class TelegramClient:
                 )
 
             raise TelegramError(
-                f"Telegram HTTP error "
-                f"{response.status_code}: "
-                f"{description}"
+                f"Telegram HTTP error " f"{response.status_code}: " f"{description}"
             )
 
         # --------------------------------------------------------
@@ -455,15 +434,11 @@ class TelegramClient:
         """
 
         if not chat_id:
-            raise TelegramError(
-                "chat_id is required"
-            )
+            raise TelegramError("chat_id is required")
 
         if not text or not text.strip():
 
-            logger.warning(
-                "Cannot send empty Telegram message"
-            )
+            logger.warning("Cannot send empty Telegram message")
 
             return None
 
@@ -473,8 +448,7 @@ class TelegramClient:
         )
 
         logger.debug(
-            "Sending Telegram message to %s "
-            "(%s chunk(s))",
+            "Sending Telegram message to %s " "(%s chunk(s))",
             chat_id,
             len(chunks),
         )
@@ -489,8 +463,7 @@ class TelegramClient:
             payload: Dict[str, Any] = {
                 "chat_id": chat_id,
                 "text": chunk,
-                "disable_web_page_preview":
-                    disable_preview,
+                "disable_web_page_preview": disable_preview,
             }
 
             if parse_mode:
@@ -505,33 +478,25 @@ class TelegramClient:
                 )
 
                 # Verify message object
-                telegram_result = result.get(
-                    "result"
-                )
+                telegram_result = result.get("result")
 
                 if not isinstance(
                     telegram_result,
                     dict,
                 ):
-                    raise TelegramResponseError(
-                        "sendMessage result is invalid"
-                    )
+                    raise TelegramResponseError("sendMessage result is invalid")
 
-                message_id = telegram_result.get(
-                    "message_id"
-                )
+                message_id = telegram_result.get("message_id")
 
                 if message_id is None:
                     raise TelegramResponseError(
-                        "sendMessage response "
-                        "missing message_id"
+                        "sendMessage response " "missing message_id"
                     )
 
                 results.append(result)
 
                 logger.info(
-                    "Telegram message sent "
-                    "(chunk %s/%s, message_id=%s)",
+                    "Telegram message sent " "(chunk %s/%s, message_id=%s)",
                     index,
                     len(chunks),
                     message_id,
@@ -539,20 +504,14 @@ class TelegramClient:
 
             except TelegramError:
                 logger.exception(
-                    "Failed to send Telegram "
-                    "message chunk %s/%s",
+                    "Failed to send Telegram " "message chunk %s/%s",
                     index,
                     len(chunks),
                 )
                 raise
 
-            if (
-                len(chunks) > 1
-                and index < len(chunks)
-            ):
-                time.sleep(
-                    self.CHUNK_DELAY
-                )
+            if len(chunks) > 1 and index < len(chunks):
+                time.sleep(self.CHUNK_DELAY)
 
         return results[-1]
 
@@ -571,22 +530,13 @@ class TelegramClient:
         """
 
         if not from_chat_id:
-            raise TelegramError(
-                "from_chat_id is required"
-            )
+            raise TelegramError("from_chat_id is required")
 
         if not to_chat_id:
-            raise TelegramError(
-                "to_chat_id is required"
-            )
+            raise TelegramError("to_chat_id is required")
 
-        if (
-            not isinstance(message_id, int)
-            or message_id <= 0
-        ):
-            raise TelegramError(
-                f"Invalid message_id: {message_id}"
-            )
+        if not isinstance(message_id, int) or message_id <= 0:
+            raise TelegramError(f"Invalid message_id: {message_id}")
 
         payload = {
             "chat_id": to_chat_id,
@@ -595,8 +545,7 @@ class TelegramClient:
         }
 
         logger.debug(
-            "Forwarding message %s "
-            "from %s to %s",
+            "Forwarding message %s " "from %s to %s",
             message_id,
             from_chat_id,
             to_chat_id,
@@ -635,9 +584,7 @@ class TelegramClient:
         """
 
         if not chat_id:
-            raise TelegramError(
-                "chat_id is required"
-            )
+            raise TelegramError("chat_id is required")
 
         return self._make_request(
             "GET",
@@ -664,17 +611,13 @@ class TelegramClient:
 
             result = self.get_me()
 
-            bot_info = result.get(
-                "result"
-            )
+            bot_info = result.get("result")
 
             if not isinstance(
                 bot_info,
                 dict,
             ):
-                logger.error(
-                    "Invalid bot information"
-                )
+                logger.error("Invalid bot information")
                 return False
 
             username = bot_info.get(
@@ -700,9 +643,7 @@ class TelegramClient:
 
         except Exception:
 
-            logger.exception(
-                "Unexpected bot verification error"
-            )
+            logger.exception("Unexpected bot verification error")
 
             return False
 
@@ -711,6 +652,7 @@ class TelegramClient:
 # FACTORY
 # ================================================================
 
+
 def create_telegram_client(
     config: Optional[Config] = None,
 ) -> TelegramClient:
@@ -718,6 +660,4 @@ def create_telegram_client(
     Factory function for TelegramClient.
     """
 
-    return TelegramClient(
-        config=config
-)
+    return TelegramClient(config=config)

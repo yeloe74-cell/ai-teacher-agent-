@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class AdminHandler:
     """
     Main admin command handler.
-    
+
     Delegates all command processing to OwnerHandler.
     Keeps non-owner messages completely ignored.
     """
@@ -62,7 +62,7 @@ class AdminHandler:
     def handle_message(self, update: Dict[str, Any]) -> bool:
         """
         Handle incoming Telegram update.
-        
+
         Steps:
         1. Extract message
         2. Scan for links (any message)
@@ -108,6 +108,7 @@ class AdminHandler:
 # FACTORY
 # ============================================================
 
+
 def create_admin_handler(
     config: Optional[Config] = None,
     database: Optional[DatabaseInterface] = None,
@@ -120,4 +121,4 @@ def create_admin_handler(
         database=database,
         telegram=telegram,
         group_manager=group_manager,
-  )
+    )

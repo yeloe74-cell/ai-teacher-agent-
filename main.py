@@ -4,6 +4,7 @@ AI Teacher Bot - Main Entry Point.
 
 Starts the scheduler for automated lesson publishing.
 """
+
 import logging
 import sys
 
@@ -18,7 +19,7 @@ def main() -> None:
     """
     # Load config
     config = get_config()
-    
+
     # Setup logging
     log_config = config.get_logging_config()
     setup_logging(
@@ -27,21 +28,21 @@ def main() -> None:
         max_bytes=log_config["max_bytes"],
         backup_count=log_config["backup_count"],
     )
-    
+
     logger = logging.getLogger(__name__)
-    
+
     # Validate config
     if not config.validate():
         logger.error("Invalid configuration. Exiting.")
         sys.exit(1)
-    
+
     logger.info("=" * 60)
     logger.info("AI Teacher Bot - Starting")
     logger.info(f"Timezone: {config.timezone}")
     logger.info(f"Morning post: {config.morning_post_time}")
     logger.info(f"Evening post: {config.evening_post_time}")
     logger.info("=" * 60)
-    
+
     # Create and start scheduler
     try:
         scheduler = create_scheduler(config)

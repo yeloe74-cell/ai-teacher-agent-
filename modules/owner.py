@@ -156,13 +156,11 @@ class OwnerHandler:
             "/status": lambda: self.cmd_status(chat_id),
             "/pause": lambda: self.cmd_pause(chat_id),
             "/resume": lambda: self.cmd_resume(chat_id),
-
             # Groups
             "/groups": lambda: self.cmd_groups(chat_id),
             "/grouplist": lambda: self.cmd_grouplist(chat_id),
             "/approve": lambda: self.cmd_approve(chat_id, args),
             "/remove": lambda: self.cmd_remove(chat_id, args),
-
             # Posting
             "/global": lambda: self.cmd_global(chat_id, args),
             "/broadcast": lambda: self.cmd_broadcast(chat_id, args),
@@ -171,7 +169,6 @@ class OwnerHandler:
             "/share": lambda: self.cmd_share(chat_id, args),
             "/editpost": lambda: self.cmd_editpost(chat_id, args),
             "/deletepost": lambda: self.cmd_deletepost(chat_id, args),
-
             # Links
             "/scan": lambda: self.cmd_scan(chat_id),
             "/links": lambda: self.cmd_scan(chat_id),
@@ -179,36 +176,30 @@ class OwnerHandler:
             "/joinall": lambda: self.cmd_joinall(chat_id),
             "/reject": lambda: self.cmd_reject(chat_id, args),
             "/clearlinks": lambda: self.cmd_clearlinks(chat_id),
-
             # Moderation
             "/ban": lambda: self.cmd_mod(chat_id, args, "banChatMember"),
             "/unban": lambda: self.cmd_mod(chat_id, args, "unbanChatMember"),
             "/kick": lambda: self.cmd_kick(chat_id, args),
             "/pin": lambda: self.cmd_pin(chat_id, args),
             "/unpin": lambda: self.cmd_unpin(chat_id),
-
             # Schedule
             "/settime": lambda: self.cmd_settime(chat_id, args),
             "/setmonth": lambda: self.cmd_setmonth(chat_id, args),
             "/scheduled": lambda: self.cmd_scheduled(chat_id),
             "/skipday": lambda: self.cmd_skipday(chat_id),
             "/resetday": lambda: self.cmd_resetday(chat_id, args),
-
             # Stats
             "/stats": lambda: self.cmd_stats(chat_id),
             "/lessonstatus": lambda: self.cmd_lessonstatus(chat_id),
             "/agentstatus": lambda: self.cmd_agentstatus(chat_id),
             "/uptime": lambda: self.cmd_uptime(chat_id),
-
             # Maintenance
             "/backup": lambda: self.cmd_backup(chat_id),
             "/clearlogs": lambda: self.cmd_clearlogs(chat_id),
             "/restart": lambda: self.cmd_restart(chat_id),
-
             # AI
             "/proposals": lambda: self.cmd_proposals(chat_id),
             "/feedback": lambda: self.cmd_feedback(chat_id),
-
             # Help
             "/help": lambda: self.cmd_help(chat_id),
         }
@@ -239,9 +230,7 @@ class OwnerHandler:
 
         self._send(
             chat_id,
-            f"<b>🤖 AI Teacher Bot</b>\n"
-            f"Status: {state}\n"
-            f"Groups: {count}",
+            f"<b>🤖 AI Teacher Bot</b>\n" f"Status: {state}\n" f"Groups: {count}",
         )
 
     def cmd_pause(self, chat_id: Any) -> None:
@@ -595,13 +584,11 @@ class OwnerHandler:
             return
 
         try:
-            links = self.database.query(
-                """
+            links = self.database.query("""
                 SELECT * FROM found_links
                 WHERE status='found'
                 ORDER BY last_seen DESC
-                """
-            )
+                """)
         except Exception:
             links = []
 
@@ -614,13 +601,15 @@ class OwnerHandler:
         for i, item in enumerate(links, 1):
             lines.append(f"{i}. @{item.get('link', '?')}")
 
-        lines.extend([
-            "",
-            "/join @group",
-            "/joinall",
-            "/reject @group",
-            "/clearlinks",
-        ])
+        lines.extend(
+            [
+                "",
+                "/join @group",
+                "/joinall",
+                "/reject @group",
+                "/clearlinks",
+            ]
+        )
 
         self._send(chat_id, "\n".join(lines))
 
@@ -647,8 +636,7 @@ class OwnerHandler:
 
                 self._send(
                     chat_id,
-                    f"✅ Found: @{link}\n"
-                    f"⚠️ Bot API နဲ့ auto-join မလုပ်နိုင်ပါ။",
+                    f"✅ Found: @{link}\n" f"⚠️ Bot API နဲ့ auto-join မလုပ်နိုင်ပါ။",
                 )
             else:
                 self._send(chat_id, "❌ Not found.")
@@ -674,8 +662,7 @@ class OwnerHandler:
 
         self._send(
             chat_id,
-            f"🔎 Found {len(links)} links.\n"
-            f"⚠️ Bot API auto-join မရပါ။",
+            f"🔎 Found {len(links)} links.\n" f"⚠️ Bot API auto-join မရပါ။",
         )
 
         for item in links:
@@ -703,9 +690,7 @@ class OwnerHandler:
             return
 
         try:
-            self.database.execute(
-                "DELETE FROM found_links WHERE status='found'"
-            )
+            self.database.execute("DELETE FROM found_links WHERE status='found'")
             self._send(chat_id, "✅ Links cleared.")
         except Exception as exc:
             self._send(chat_id, f"❌ {exc}")
@@ -1070,6 +1055,7 @@ class OwnerHandler:
             lines.append(f"⭐ {rating}/5 — {content}")
 
         self._send(chat_id, "\n".join(lines))
+
     # ========================================================
     # HELP
     # ========================================================
@@ -1077,18 +1063,15 @@ class OwnerHandler:
     def cmd_help(self, chat_id: Any) -> None:
         text = (
             "<b>📋 Owner Commands</b>\n\n"
-
             "<b>Basic</b>\n"
             "/status - Bot status\n"
             "/pause - Pause publishing\n"
             "/resume - Resume publishing\n\n"
-
             "<b>Groups</b>\n"
             "/groups - Approved groups\n"
             "/grouplist - All groups by status\n"
             "/approve @group - Approve\n"
             "/remove @group - Remove\n\n"
-
             "<b>Posting</b>\n"
             "/global message - Broadcast to approved\n"
             "/broadcast message - Broadcast to all enabled\n"
@@ -1097,7 +1080,6 @@ class OwnerHandler:
             "/share message_id - Share post to groups\n"
             "/editpost message_id text - Edit post\n"
             "/deletepost message_id - Delete post\n\n"
-
             "<b>Links</b>\n"
             "/scan - Show found links\n"
             "/links - Alias for scan\n"
@@ -1105,36 +1087,30 @@ class OwnerHandler:
             "/joinall - Join all\n"
             "/reject @group - Reject link\n"
             "/clearlinks - Clear links\n\n"
-
             "<b>Moderation</b>\n"
             "/ban group_id user_id\n"
             "/unban group_id user_id\n"
             "/kick group_id user_id\n"
             "/pin message_id\n"
             "/unpin\n\n"
-
             "<b>Schedule</b>\n"
             "/settime morning 09:00\n"
             "/setmonth month_id\n"
             "/scheduled\n"
             "/skipday\n"
             "/resetday day\n\n"
-
             "<b>Stats</b>\n"
             "/stats\n"
             "/lessonstatus\n"
             "/agentstatus\n"
             "/uptime\n\n"
-
             "<b>Maintenance</b>\n"
             "/backup\n"
             "/clearlogs\n"
             "/restart\n\n"
-
             "<b>AI</b>\n"
             "/proposals\n"
             "/feedback\n\n"
-
             "/help - This help"
         )
 
@@ -1144,6 +1120,7 @@ class OwnerHandler:
 # ============================================================
 # FACTORY
 # ============================================================
+
 
 def create_owner_handler(
     config: Optional[Config] = None,

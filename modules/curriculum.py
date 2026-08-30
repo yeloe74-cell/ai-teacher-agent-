@@ -32,7 +32,6 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -40,24 +39,29 @@ logger = logging.getLogger(__name__)
 # EXCEPTIONS
 # ================================================================
 
+
 class CurriculumError(Exception):
     """Base exception for curriculum-related errors."""
+
     pass
 
 
 class CurriculumFileNotFoundError(CurriculumError):
     """Raised when a curriculum JSON file does not exist."""
+
     pass
 
 
 class CurriculumValidationError(CurriculumError):
     """Raised when curriculum structure is invalid."""
+
     pass
 
 
 # ================================================================
 # CURRICULUM MANAGER
 # ================================================================
+
 
 class Curriculum:
     """
@@ -116,15 +120,11 @@ class Curriculum:
             CurriculumError: If month identifier is invalid.
         """
         if not month or not isinstance(month, str):
-            raise CurriculumError(
-                "Month identifier must be a non-empty string"
-            )
+            raise CurriculumError("Month identifier must be a non-empty string")
 
         # Prevent accidental path traversal.
         if "/" in month or "\\" in month or ".." in month:
-            raise CurriculumError(
-                f"Invalid curriculum identifier: {month}"
-            )
+            raise CurriculumError(f"Invalid curriculum identifier: {month}")
 
         return self.data_dir / f"{month}.json"
 
@@ -191,8 +191,7 @@ class Curriculum:
 
         if data["month"] != month:
             raise CurriculumValidationError(
-                f"Month mismatch: filename={month}, "
-                f"json={data['month']}"
+                f"Month mismatch: filename={month}, " f"json={data['month']}"
             )
 
         # --------------------------------------------------------
@@ -200,14 +199,10 @@ class Curriculum:
         # --------------------------------------------------------
 
         if not isinstance(data["language"], str) or not data["language"].strip():
-            raise CurriculumValidationError(
-                f"Invalid language field: {month}"
-            )
+            raise CurriculumValidationError(f"Invalid language field: {month}")
 
         if not isinstance(data["description"], str):
-            raise CurriculumValidationError(
-                f"Invalid description field: {month}"
-            )
+            raise CurriculumValidationError(f"Invalid description field: {month}")
 
         # --------------------------------------------------------
         # Total days validation
@@ -221,9 +216,7 @@ class Curriculum:
             or total_days < 1
             or total_days > self.MAX_DAY
         ):
-            raise CurriculumValidationError(
-                f"Invalid total_days={total_days}: {month}"
-            )
+            raise CurriculumValidationError(f"Invalid total_days={total_days}: {month}")
 
         # --------------------------------------------------------
         # Days validation
@@ -232,9 +225,7 @@ class Curriculum:
         days = data["days"]
 
         if not isinstance(days, list):
-            raise CurriculumValidationError(
-                f"'days' must be a list: {month}"
-            )
+            raise CurriculumValidationError(f"'days' must be a list: {month}")
 
         if len(days) != total_days:
             raise CurriculumValidationError(
@@ -287,16 +278,12 @@ class Curriculum:
 
                 if lesson_type not in day_data:
                     raise CurriculumValidationError(
-                        f"Missing '{lesson_type}' "
-                        f"for Day {day_number}: {month}"
+                        f"Missing '{lesson_type}' " f"for Day {day_number}: {month}"
                     )
 
                 topic = day_data[lesson_type]
 
-                if (
-                    not isinstance(topic, str)
-                    or not topic.strip()
-                ):
+                if not isinstance(topic, str) or not topic.strip():
                     raise CurriculumValidationError(
                         f"Invalid topic for Day {day_number} "
                         f"({lesson_type}): {month}"
@@ -311,9 +298,7 @@ class Curriculum:
         if seen_days != expected_days:
             missing = sorted(expected_days - seen_days)
 
-            raise CurriculumValidationError(
-                f"Missing day entries {missing}: {month}"
-            )
+            raise CurriculumValidationError(f"Missing day entries {missing}: {month}")
 
         return data
 
@@ -351,9 +336,7 @@ class Curriculum:
         file_path = self._get_file_path(month)
 
         if not file_path.exists():
-            raise CurriculumFileNotFoundError(
-                f"Curriculum file not found: {file_path}"
-            )
+            raise CurriculumFileNotFoundError(f"Curriculum file not found: {file_path}")
 
         if not file_path.is_file():
             raise CurriculumFileNotFoundError(
@@ -368,14 +351,10 @@ class Curriculum:
                 data = json.load(file)
 
         except json.JSONDecodeError as e:
-            raise CurriculumValidationError(
-                f"Invalid JSON in {file_path}: {e}"
-            ) from e
+            raise CurriculumValidationError(f"Invalid JSON in {file_path}: {e}") from e
 
         except OSError as e:
-            raise CurriculumError(
-                f"Failed to read curriculum {file_path}: {e}"
-            ) from e
+            raise CurriculumError(f"Failed to read curriculum {file_path}: {e}") from e
 
         # Validate before caching.
         validated = self._validate_curriculum(
@@ -448,9 +427,7 @@ class Curriculum:
             or day_number < self.MIN_DAY
             or day_number > self.MAX_DAY
         ):
-            raise CurriculumError(
-                f"Invalid day number: {day_number}"
-            )
+            raise CurriculumError(f"Invalid day number: {day_number}")
 
         curriculum = self.load_curriculum(month)
 
@@ -458,9 +435,7 @@ class Curriculum:
             if day_data["day"] == day_number:
                 return day_data
 
-        raise CurriculumError(
-            f"Day {day_number} not found in {month}"
-        )
+        raise CurriculumError(f"Day {day_number} not found in {month}")
 
     # ============================================================
     # GET TOPIC
@@ -487,9 +462,7 @@ class Curriculum:
         """
 
         if lesson_type not in self.VALID_LESSON_TYPES:
-            raise CurriculumError(
-                f"Invalid lesson type: {lesson_type}"
-            )
+            raise CurriculumError(f"Invalid lesson type: {lesson_type}")
 
         day_data = self.get_day_data(
             month,
@@ -500,9 +473,7 @@ class Curriculum:
 
         if not topic:
             raise CurriculumError(
-                f"Topic not found for "
-                f"{month} Day {day_number} "
-                f"({lesson_type})"
+                f"Topic not found for " f"{month} Day {day_number} " f"({lesson_type})"
             )
 
         return topic
@@ -624,9 +595,7 @@ class Curriculum:
         if month is None:
             self.curriculum.clear()
 
-            logger.debug(
-                "All curriculum cache cleared"
-            )
+            logger.debug("All curriculum cache cleared")
 
             return
 

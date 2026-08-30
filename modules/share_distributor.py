@@ -26,7 +26,6 @@ from database import DatabaseInterface
 from modules.group_manager import GroupManager
 from modules.telegram_client import TelegramClient
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -34,24 +33,29 @@ logger = logging.getLogger(__name__)
 # EXCEPTIONS
 # ============================================================
 
+
 class ShareDistributorError(Exception):
     """Base exception for share distributor."""
+
     pass
 
 
 class ShareForwardError(ShareDistributorError):
     """Raised when Telegram forwarding fails."""
+
     pass
 
 
 class ShareRecordError(ShareDistributorError):
     """Raised when share recording fails."""
+
     pass
 
 
 # ============================================================
 # SHARE DISTRIBUTOR
 # ============================================================
+
 
 class ShareDistributor:
     """
@@ -109,10 +113,7 @@ class ShareDistributor:
         if not self.channel_id:
             raise ValueError("channel_id cannot be empty")
 
-        logger.info(
-            f"ShareDistributor initialized "
-            f"(channel_id={self.channel_id})"
-        )
+        logger.info(f"ShareDistributor initialized " f"(channel_id={self.channel_id})")
 
     # ========================================================
     # INPUT VALIDATION
@@ -136,8 +137,7 @@ class ShareDistributor:
 
         if message_id is None:
             logger.warning(
-                f"Distribution rejected: empty message_id "
-                f"(lesson={lesson_id})"
+                f"Distribution rejected: empty message_id " f"(lesson={lesson_id})"
             )
             return False
 
@@ -151,17 +151,13 @@ class ShareDistributor:
             result = int(value)
 
             if result <= 0:
-                logger.error(
-                    f"Invalid message_id: {value}"
-                )
+                logger.error(f"Invalid message_id: {value}")
                 return None
 
             return result
 
         except (ValueError, TypeError):
-            logger.error(
-                f"Invalid message_id: {value}"
-            )
+            logger.error(f"Invalid message_id: {value}")
             return None
 
     # ========================================================
@@ -268,25 +264,17 @@ class ShareDistributor:
         # ----------------------------------------------------
 
         try:
-            allowed = self.groups.check_share_allowed(
-                group_id
-            )
+            allowed = self.groups.check_share_allowed(group_id)
 
         except Exception as exc:
-            logger.error(
-                f"Failed share permission check "
-                f"for {group_id}: {exc}"
-            )
+            logger.error(f"Failed share permission check " f"for {group_id}: {exc}")
 
             result["status"] = "failed"
             result["reason"] = "permission_check_error"
             return result
 
         if not allowed:
-            logger.info(
-                f"Share skipped: group not allowed "
-                f"({group_id})"
-            )
+            logger.info(f"Share skipped: group not allowed " f"({group_id})")
 
             result["status"] = "skipped"
             result["reason"] = "share_not_allowed"
@@ -303,20 +291,14 @@ class ShareDistributor:
             )
 
         except Exception as exc:
-            logger.error(
-                f"Duplicate check failed "
-                f"{lesson_id} -> {group_id}: {exc}"
-            )
+            logger.error(f"Duplicate check failed " f"{lesson_id} -> {group_id}: {exc}")
 
             result["status"] = "failed"
             result["reason"] = "duplicate_check_error"
             return result
 
         if already_shared:
-            logger.info(
-                f"Share skipped: already shared "
-                f"{lesson_id} -> {group_id}"
-            )
+            logger.info(f"Share skipped: already shared " f"{lesson_id} -> {group_id}")
 
             result["status"] = "skipped"
             result["reason"] = "already_shared"
@@ -346,8 +328,7 @@ class ShareDistributor:
 
         except Exception as exc:
             logger.error(
-                f"Telegram forwarding exception "
-                f"{lesson_id} -> {group_id}: {exc}"
+                f"Telegram forwarding exception " f"{lesson_id} -> {group_id}: {exc}"
             )
 
             result["status"] = "failed"
@@ -360,23 +341,17 @@ class ShareDistributor:
         # ----------------------------------------------------
 
         if not telegram_result:
-            logger.error(
-                f"Telegram forwarding failed "
-                f"{lesson_id} -> {group_id}"
-            )
+            logger.error(f"Telegram forwarding failed " f"{lesson_id} -> {group_id}")
 
             result["status"] = "failed"
             result["reason"] = "telegram_forward_failed"
             return result
 
-        group_message_id = self._extract_message_id(
-            telegram_result
-        )
+        group_message_id = self._extract_message_id(telegram_result)
 
         if not group_message_id:
             logger.error(
-                f"Forward response missing message_id "
-                f"{lesson_id} -> {group_id}"
+                f"Forward response missing message_id " f"{lesson_id} -> {group_id}"
             )
 
             result["status"] = "failed"
@@ -398,10 +373,7 @@ class ShareDistributor:
             )
 
         except Exception as exc:
-            logger.error(
-                f"Share record exception "
-                f"{lesson_id} -> {group_id}: {exc}"
-            )
+            logger.error(f"Share record exception " f"{lesson_id} -> {group_id}: {exc}")
 
             result["status"] = "failed"
             result["reason"] = "share_record_error"
@@ -426,10 +398,7 @@ class ShareDistributor:
         result["status"] = "shared"
         result["reason"] = "success"
 
-        logger.info(
-            f"✅ Shared successfully "
-            f"{lesson_id} -> {group_id}"
-        )
+        logger.info(f"✅ Shared successfully " f"{lesson_id} -> {group_id}")
 
         return result
 
@@ -473,18 +442,14 @@ class ShareDistributor:
         # ----------------------------------------------------
 
         if self._safe_int(message_id) is None:
-            logger.error(
-                "Distribution aborted: invalid message_id"
-            )
+            logger.error("Distribution aborted: invalid message_id")
 
             summary["success"] = False
             summary["error"] = "invalid_message_id"
             return summary
 
         if not lesson_id or not str(lesson_id).strip():
-            logger.error(
-                "Distribution aborted: empty lesson_id"
-            )
+            logger.error("Distribution aborted: empty lesson_id")
 
             summary["success"] = False
             summary["error"] = "invalid_lesson_id"
@@ -497,28 +462,20 @@ class ShareDistributor:
         # ----------------------------------------------------
 
         try:
-            approved_groups = (
-                self.groups.get_approved_groups()
-            )
+            approved_groups = self.groups.get_approved_groups()
 
         except Exception as exc:
-            logger.error(
-                f"Failed to get approved groups: {exc}"
-            )
+            logger.error(f"Failed to get approved groups: {exc}")
 
             summary["success"] = False
             summary["error"] = "approved_groups_error"
             return summary
 
         if not approved_groups:
-            logger.info(
-                "No approved auto-share groups available."
-            )
+            logger.info("No approved auto-share groups available.")
             return summary
 
-        summary["total_groups"] = len(
-            approved_groups
-        )
+        summary["total_groups"] = len(approved_groups)
 
         logger.info(
             f"Starting distribution: "
@@ -538,15 +495,15 @@ class ShareDistributor:
             if not group_id:
                 summary["skipped"] += 1
 
-                summary["details"].append({
-                    "group_id": None,
-                    "status": "skipped",
-                    "reason": "missing_group_id",
-                })
-
-                logger.warning(
-                    "Skipping group with missing group_id"
+                summary["details"].append(
+                    {
+                        "group_id": None,
+                        "status": "skipped",
+                        "reason": "missing_group_id",
+                    }
                 )
+
+                logger.warning("Skipping group with missing group_id")
 
                 continue
 
@@ -557,28 +514,27 @@ class ShareDistributor:
             # ------------------------------------------------
 
             try:
-                share_result = (
-                    self.distribute_to_group(
-                        group_id=group_id,
-                        message_id=message_id,
-                        lesson_id=lesson_id,
-                    )
+                share_result = self.distribute_to_group(
+                    group_id=group_id,
+                    message_id=message_id,
+                    lesson_id=lesson_id,
                 )
 
             except Exception as exc:
                 logger.exception(
-                    f"Unexpected distribution error "
-                    f"for {group_id}: {exc}"
+                    f"Unexpected distribution error " f"for {group_id}: {exc}"
                 )
 
                 summary["failed"] += 1
 
-                summary["details"].append({
-                    "group_id": group_id,
-                    "status": "failed",
-                    "reason": "unexpected_error",
-                    "error": str(exc),
-                })
+                summary["details"].append(
+                    {
+                        "group_id": group_id,
+                        "status": "failed",
+                        "reason": "unexpected_error",
+                        "error": str(exc),
+                    }
+                )
 
                 continue
 
@@ -595,25 +551,19 @@ class ShareDistributor:
 
                 summary["shared"] += 1
 
-                summary["details"].append(
-                    share_result
-                )
+                summary["details"].append(share_result)
 
             elif status == "skipped":
 
                 summary["skipped"] += 1
 
-                summary["details"].append(
-                    share_result
-                )
+                summary["details"].append(share_result)
 
             else:
 
                 summary["failed"] += 1
 
-                summary["details"].append(
-                    share_result
-                )
+                summary["details"].append(share_result)
 
         # ----------------------------------------------------
         # Final result
@@ -637,6 +587,7 @@ class ShareDistributor:
 # FACTORY
 # ============================================================
 
+
 def create_share_distributor(
     database: DatabaseInterface,
     telegram_client: TelegramClient,
@@ -655,4 +606,4 @@ def create_share_distributor(
         telegram_client=telegram_client,
         group_manager=group_manager,
         channel_id=channel_id,
-      )
+    )

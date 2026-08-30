@@ -32,44 +32,53 @@ logger = logging.getLogger(__name__)
 # EXCEPTIONS
 # ============================================================
 
+
 class GroupManagerError(Exception):
     """Base exception for group manager."""
+
     pass
 
 
 class GroupNotFoundError(GroupManagerError):
     """Raised when a group does not exist."""
+
     pass
 
 
 class GroupNotApprovedError(GroupManagerError):
     """Raised when a group is not approved."""
+
     pass
 
 
 class GroupDisabledError(GroupManagerError):
     """Raised when a group is disabled."""
+
     pass
 
 
 class AutoShareDisabledError(GroupManagerError):
     """Raised when auto-share is disabled."""
+
     pass
 
 
 class ShareLimitExceededError(GroupManagerError):
     """Raised when daily share limit is exceeded."""
+
     pass
 
 
 class DuplicateShareError(GroupManagerError):
     """Raised when lesson was already shared to group."""
+
     pass
 
 
 # ============================================================
 # GROUP MANAGER
 # ============================================================
+
 
 class GroupManager:
     """
@@ -96,8 +105,7 @@ class GroupManager:
         self.max_daily_shares = max_daily_shares
 
         logger.info(
-            f"GroupManager initialized "
-            f"(max_daily_shares={max_daily_shares})"
+            f"GroupManager initialized " f"(max_daily_shares={max_daily_shares})"
         )
 
     # ========================================================
@@ -175,9 +183,7 @@ class GroupManager:
                     "SELECT * FROM groups WHERE status = ? ORDER BY added_date ASC",
                     (status,),
                 )
-            return self.database.query(
-                "SELECT * FROM groups ORDER BY added_date ASC"
-            )
+            return self.database.query("SELECT * FROM groups ORDER BY added_date ASC")
         except DatabaseError as exc:
             logger.error(f"Failed to get groups: {exc}")
             return []
@@ -185,15 +191,13 @@ class GroupManager:
     def get_approved_groups(self) -> List[Dict[str, Any]]:
         """Get approved + enabled + auto_share groups."""
         try:
-            return self.database.query(
-                """
+            return self.database.query("""
                 SELECT * FROM groups
                 WHERE status = 'approved'
                   AND enabled = 1
                   AND auto_share = 1
                 ORDER BY added_date ASC
-                """
-            )
+                """)
         except DatabaseError as exc:
             logger.error(f"Failed to get approved groups: {exc}")
             return []
@@ -276,9 +280,7 @@ class GroupManager:
             return False
 
         if group.get("status") != "approved":
-            logger.warning(
-                f"Cannot enable auto-share for unapproved group: {group_id}"
-            )
+            logger.warning(f"Cannot enable auto-share for unapproved group: {group_id}")
             return False
 
         if self._execute(
@@ -491,12 +493,10 @@ class GroupManager:
             total_groups = self.database.query_one(
                 "SELECT COUNT(*) AS count FROM groups"
             )
-            approved_groups = self.database.query_one(
-                """
+            approved_groups = self.database.query_one("""
                 SELECT COUNT(*) AS count FROM groups
                 WHERE status = 'approved' AND enabled = 1
-                """
-            )
+                """)
 
             return {
                 "total_shares": int((total_shares or {}).get("total", 0)),
@@ -512,6 +512,7 @@ class GroupManager:
 # FACTORY
 # ============================================================
 
+
 def create_group_manager(
     database: DatabaseInterface,
     max_daily_shares: int = 2,
@@ -520,4 +521,4 @@ def create_group_manager(
     return GroupManager(
         database=database,
         max_daily_shares=max_daily_shares,
-)
+    )

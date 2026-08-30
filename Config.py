@@ -11,6 +11,7 @@ This module provides:
 - Validation methods for required fields
 - Helper methods for accessing configuration groups
 """
+
 import os
 import logging
 from typing import Optional, Dict, Any
@@ -27,10 +28,10 @@ logger = logging.getLogger(__name__)
 class Config:
     """
     Application configuration class.
-    
+
     All values are loaded from environment variables.
     Sensitive values (tokens, API keys) are never logged.
-    
+
     Attributes:
         cf_account_id: Cloudflare account ID
         cf_api_token: Cloudflare API token
@@ -62,26 +63,20 @@ class Config:
         emergency_stop: Emergency stop flag
         maintenance_mode: Maintenance mode flag
     """
-    
+
     # ==================== Cloudflare Workers AI ====================
-    cf_account_id: str = field(
-        default_factory=lambda: os.getenv("CF_ACCOUNT_ID", "")
-    )
-    cf_api_token: str = field(
-        default_factory=lambda: os.getenv("CF_API_TOKEN", "")
-    )
+    cf_account_id: str = field(default_factory=lambda: os.getenv("CF_ACCOUNT_ID", ""))
+    cf_api_token: str = field(default_factory=lambda: os.getenv("CF_API_TOKEN", ""))
     cf_ai_model: str = field(
         default_factory=lambda: os.getenv("CF_AI_MODEL", "@cf/meta/llama-3-8b-instruct")
     )
-    
+
     # ==================== Cloudflare D1 Database ====================
     cf_d1_database_id: str = field(
         default_factory=lambda: os.getenv("CF_D1_DATABASE_ID", "")
     )
-    cf_d1_api_url: str = field(
-        default_factory=lambda: os.getenv("CF_D1_API_URL", "")
-    )
-    
+    cf_d1_api_url: str = field(default_factory=lambda: os.getenv("CF_D1_API_URL", ""))
+
     # ==================== Telegram Bot ====================
     telegram_bot_token: str = field(
         default_factory=lambda: os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -89,12 +84,10 @@ class Config:
     telegram_channel_id: str = field(
         default_factory=lambda: os.getenv("TELEGRAM_CHANNEL_ID", "")
     )
-    
+
     # ==================== Owner ====================
-    owner_user_id: str = field(
-        default_factory=lambda: os.getenv("OWNER_USER_ID", "")
-    )
-    
+    owner_user_id: str = field(default_factory=lambda: os.getenv("OWNER_USER_ID", ""))
+
     # ==================== Schedule ====================
     morning_post_time: str = field(
         default_factory=lambda: os.getenv("MORNING_POST_TIME", "08:00")
@@ -102,43 +95,31 @@ class Config:
     evening_post_time: str = field(
         default_factory=lambda: os.getenv("EVENING_POST_TIME", "20:00")
     )
-    timezone: str = field(
-        default_factory=lambda: os.getenv("TIMEZONE", "Asia/Yangon")
-    )
-    
+    timezone: str = field(default_factory=lambda: os.getenv("TIMEZONE", "Asia/Yangon"))
+
     # ==================== Logging ====================
-    log_level: str = field(
-        default_factory=lambda: os.getenv("LOG_LEVEL", "INFO")
-    )
-    log_file: str = field(
-        default_factory=lambda: os.getenv("LOG_FILE", "logs/app.log")
-    )
+    log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
+    log_file: str = field(default_factory=lambda: os.getenv("LOG_FILE", "logs/app.log"))
     log_max_bytes: int = field(
         default_factory=lambda: int(os.getenv("LOG_MAX_BYTES", "5242880"))
     )
     log_backup_count: int = field(
         default_factory=lambda: int(os.getenv("LOG_BACKUP_COUNT", "3"))
     )
-    
+
     # ==================== Database ====================
-    db_backend: str = field(
-        default_factory=lambda: os.getenv("DB_BACKEND", "sqlite")
-    )
+    db_backend: str = field(default_factory=lambda: os.getenv("DB_BACKEND", "sqlite"))
     sqlite_db_path: str = field(
         default_factory=lambda: os.getenv("SQLITE_DB_PATH", "data/app.db")
     )
-    db_timeout: int = field(
-        default_factory=lambda: int(os.getenv("DB_TIMEOUT", "30"))
-    )
-    
+    db_timeout: int = field(default_factory=lambda: int(os.getenv("DB_TIMEOUT", "30")))
+
     # ==================== API Timeouts ====================
-    ai_timeout: int = field(
-        default_factory=lambda: int(os.getenv("AI_TIMEOUT", "60"))
-    )
+    ai_timeout: int = field(default_factory=lambda: int(os.getenv("AI_TIMEOUT", "60")))
     telegram_timeout: int = field(
         default_factory=lambda: int(os.getenv("TELEGRAM_TIMEOUT", "30"))
     )
-    
+
     # ==================== Retry Configuration ====================
     max_retry_attempts: int = field(
         default_factory=lambda: int(os.getenv("MAX_RETRY_ATTEMPTS", "3"))
@@ -149,7 +130,7 @@ class Config:
     retry_backoff: float = field(
         default_factory=lambda: float(os.getenv("RETRY_BACKOFF", "2.0"))
     )
-    
+
     # ==================== Content Generation ====================
     max_tokens_morning: int = field(
         default_factory=lambda: int(os.getenv("MAX_TOKENS_MORNING", "1000"))
@@ -160,7 +141,7 @@ class Config:
     temperature: float = field(
         default_factory=lambda: float(os.getenv("TEMPERATURE", "0.7"))
     )
-    
+
     # ==================== Safety ====================
     auto_share_default: bool = field(
         default_factory=lambda: os.getenv("AUTO_SHARE_DEFAULT", "0") == "1"
@@ -174,12 +155,12 @@ class Config:
     maintenance_mode: bool = field(
         default_factory=lambda: os.getenv("MAINTENANCE_MODE", "0") == "1"
     )
-    
+
     # ==================== Validation ====================
     def validate(self) -> bool:
         """
         Validate required configuration values.
-        
+
         Returns:
             True if all required values are present, False otherwise
         """
@@ -189,25 +170,21 @@ class Config:
             "telegram_bot_token": self.telegram_bot_token,
             "telegram_channel_id": self.telegram_channel_id,
         }
-        
-        missing_fields = [
-            name for name, value in required_fields.items() if not value
-        ]
-        
+
+        missing_fields = [name for name, value in required_fields.items() if not value]
+
         if missing_fields:
-            logger.error(
-                f"Missing required configuration: {', '.join(missing_fields)}"
-            )
+            logger.error(f"Missing required configuration: {', '.join(missing_fields)}")
             logger.error("Please check your .env file and add these values.")
             return False
-        
+
         # Validate D1 configuration if selected
         if self.db_backend == "d1" and not self.cf_d1_database_id:
             logger.error("D1 backend selected but CF_D1_DATABASE_ID is missing")
             return False
-        
+
         return True
-    
+
     # ==================== Getter Methods ====================
     def get_ai_config(self) -> Dict[str, Any]:
         """Get AI-related configuration as dictionary."""
@@ -220,7 +197,7 @@ class Config:
             "max_tokens_evening": self.max_tokens_evening,
             "temperature": self.temperature,
         }
-    
+
     def get_telegram_config(self) -> Dict[str, Any]:
         """Get Telegram-related configuration as dictionary."""
         return {
@@ -228,7 +205,7 @@ class Config:
             "channel_id": self.telegram_channel_id,
             "timeout": self.telegram_timeout,
         }
-    
+
     def get_database_config(self) -> Dict[str, Any]:
         """Get database configuration as dictionary."""
         return {
@@ -237,7 +214,7 @@ class Config:
             "d1_database_id": self.cf_d1_database_id,
             "timeout": self.db_timeout,
         }
-    
+
     def get_retry_config(self) -> Dict[str, Any]:
         """Get retry configuration as dictionary."""
         return {
@@ -245,7 +222,7 @@ class Config:
             "delay": self.retry_delay,
             "backoff": self.retry_backoff,
         }
-    
+
     def get_logging_config(self) -> Dict[str, Any]:
         """Get logging configuration as dictionary."""
         return {
@@ -254,7 +231,7 @@ class Config:
             "max_bytes": self.log_max_bytes,
             "backup_count": self.log_backup_count,
         }
-    
+
     def get_schedule_config(self) -> Dict[str, Any]:
         """Get schedule configuration as dictionary."""
         return {
@@ -262,7 +239,7 @@ class Config:
             "evening_post_time": self.evening_post_time,
             "timezone": self.timezone,
         }
-    
+
     def get_safety_config(self) -> Dict[str, Any]:
         """Get safety configuration as dictionary."""
         return {
@@ -271,12 +248,12 @@ class Config:
             "emergency_stop": self.emergency_stop,
             "maintenance_mode": self.maintenance_mode,
         }
-    
+
     # ==================== State Checks ====================
     def is_emergency_stopped(self) -> bool:
         """Check if emergency stop is active."""
         return self.emergency_stop
-    
+
     def is_maintenance_mode(self) -> bool:
         """Check if maintenance mode is active."""
         return self.maintenance_mode
@@ -289,10 +266,10 @@ _config: Optional[Config] = None
 def get_config() -> Config:
     """
     Get or create Config instance.
-    
+
     Uses module-level caching to avoid creating multiple instances.
     This is the recommended way to access configuration.
-    
+
     Returns:
         Config instance
     """

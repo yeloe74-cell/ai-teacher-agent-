@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class TeacherAgent:
     """
     Autonomous Teacher Agent.
-    
+
     Thinks freely. Asks permission before acting.
     """
 
@@ -83,7 +83,7 @@ class TeacherAgent:
     ) -> Optional[Dict[str, Any]]:
         """
         Create a proposal for Owner review.
-        
+
         The Agent NEVER applies changes directly.
         It only creates proposals.
         """
@@ -122,13 +122,11 @@ class TeacherAgent:
             return []
 
         try:
-            return self.database.query(
-                """
+            return self.database.query("""
                 SELECT * FROM proposals
                 WHERE status = 'pending'
                 ORDER BY created_at DESC
-                """
-            )
+                """)
         except Exception as exc:
             logger.error(f"Failed to get proposals: {exc}")
             return []
@@ -337,13 +335,11 @@ class TeacherAgent:
             return None
 
         try:
-            feedback = self.database.query(
-                """
+            feedback = self.database.query("""
                 SELECT * FROM student_feedback
                 ORDER BY created_at DESC
                 LIMIT 50
-                """
-            )
+                """)
         except Exception as exc:
             logger.error(f"Failed to get feedback: {exc}")
             return None
@@ -352,11 +348,13 @@ class TeacherAgent:
             return None
 
         # Build prompt
-        feedback_text = "\n".join([
-            f"- [{f.get('feedback_type', 'general')}] {f.get('content', '')} "
-            f"(rating: {f.get('rating', 0)}/5)"
-            for f in feedback
-        ])
+        feedback_text = "\n".join(
+            [
+                f"- [{f.get('feedback_type', 'general')}] {f.get('content', '')} "
+                f"(rating: {f.get('rating', 0)}/5)"
+                for f in feedback
+            ]
+        )
 
         prompt = f"""
 မင်းက AI Teacher Bot ရဲ့ Teacher Agent ပါ။
@@ -439,9 +437,7 @@ Feedback တွေ:
             proposals = self.database.query_one(
                 "SELECT COUNT(*) AS count FROM proposals WHERE status='pending'"
             )
-            logs = self.database.query_one(
-                "SELECT COUNT(*) AS count FROM agent_logs"
-            )
+            logs = self.database.query_one("SELECT COUNT(*) AS count FROM agent_logs")
             feedback = self.database.query_one(
                 "SELECT COUNT(*) AS count FROM student_feedback"
             )
@@ -483,6 +479,7 @@ Feedback တွေ:
 # FACTORY
 # ============================================================
 
+
 def create_teacher_agent(
     config: Optional[Config] = None,
     database: Optional[DatabaseInterface] = None,
@@ -493,4 +490,4 @@ def create_teacher_agent(
         config=config,
         database=database,
         ai_generator=ai_generator,
-          )
+    )
