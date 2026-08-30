@@ -240,8 +240,7 @@ class OwnerExtra:
             f"❌ Failed: {stats.get('failed', 0)}\n"
             f"⏳ Pending: {stats.get('pending', 0)}",
         )
-
-           def cmd_emergency(self, chat_id: Any) -> None:
+     def cmd_emergency(self, chat_id: Any) -> None:
         """Toggle emergency stop."""
         if not self.safety:
             self._send(chat_id, "❌ Safety manager not available")
