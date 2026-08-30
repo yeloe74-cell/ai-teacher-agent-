@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 class PublisherError(Exception):
     """Custom exception for publishing errors."""
+
     pass
 
 
@@ -76,10 +77,7 @@ class Publisher:
 
         self.database = database or create_database(self.config)
         self.ai = ai_generator or create_ai_generator(self.config)
-        self.telegram = (
-            telegram_client
-            or create_telegram_client(self.config)
-        )
+        self.telegram = telegram_client or create_telegram_client(self.config)
 
         self.channel_id = self.config.telegram_channel_id
 
@@ -97,15 +95,11 @@ class Publisher:
             True if emergency stop or maintenance mode is active.
         """
         if self.config.is_emergency_stopped():
-            logger.warning(
-                "Emergency stop active. Publishing blocked."
-            )
+            logger.warning("Emergency stop active. Publishing blocked.")
             return True
 
         if self.config.is_maintenance_mode():
-            logger.warning(
-                "Maintenance mode active. Publishing blocked."
-            )
+            logger.warning("Maintenance mode active. Publishing blocked.")
             return True
 
         return False
@@ -169,9 +163,7 @@ class Publisher:
         Returns:
             Telegram API response or None on failure.
         """
-        logger.info(
-            f"Publishing lesson: {topic} ({lesson_type})"
-        )
+        logger.info(f"Publishing lesson: {topic} ({lesson_type})")
 
         # --------------------------------------------------------
         # Basic validation
@@ -185,9 +177,7 @@ class Publisher:
             "morning_lesson",
             "evening_practice",
         ):
-            logger.error(
-                f"Invalid lesson type: {lesson_type}"
-            )
+            logger.error(f"Invalid lesson type: {lesson_type}")
             return None
 
         # --------------------------------------------------------
@@ -223,15 +213,11 @@ class Publisher:
             )
 
         except DatabaseError as e:
-            logger.error(
-                f"Database idempotency check failed: {e}"
-            )
+            logger.error(f"Database idempotency check failed: {e}")
             return None
 
         if existing:
-            logger.warning(
-                f"Lesson already published: {lesson_id}"
-            )
+            logger.warning(f"Lesson already published: {lesson_id}")
             return None
 
         # --------------------------------------------------------
@@ -244,14 +230,10 @@ class Publisher:
                 lesson_type=lesson_type,
             )
 
-            logger.info(
-                f"Content generated: {len(content)} characters"
-            )
+            logger.info(f"Content generated: {len(content)} characters")
 
         except AIGeneratorError as e:
-            logger.error(
-                f"AI generation failed for {lesson_id}: {e}"
-            )
+            logger.error(f"AI generation failed for {lesson_id}: {e}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -265,10 +247,7 @@ class Publisher:
             return None
 
         except Exception as e:
-            logger.exception(
-                f"Unexpected AI generation error "
-                f"for {lesson_id}"
-            )
+            logger.exception(f"Unexpected AI generation error " f"for {lesson_id}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -288,9 +267,7 @@ class Publisher:
         if not self.ai.validate_content(content):
             error_msg = "Generated content validation failed"
 
-            logger.error(
-                f"{error_msg}: {lesson_id}"
-            )
+            logger.error(f"{error_msg}: {lesson_id}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -315,23 +292,17 @@ class Publisher:
             )
 
             if not result:
-                raise PublisherError(
-                    "Telegram returned no response"
-                )
+                raise PublisherError("Telegram returned no response")
 
             telegram_result = result.get("result")
 
             if not isinstance(telegram_result, dict):
-                raise PublisherError(
-                    "Telegram response missing result object"
-                )
+                raise PublisherError("Telegram response missing result object")
 
             message_id = telegram_result.get("message_id")
 
             if message_id is None:
-                raise PublisherError(
-                    "Telegram response missing message_id"
-                )
+                raise PublisherError("Telegram response missing message_id")
 
             logger.info(
                 f"Lesson posted to channel. "
@@ -340,10 +311,7 @@ class Publisher:
             )
 
         except TelegramError as e:
-            logger.error(
-                f"Telegram publishing failed "
-                f"for {lesson_id}: {e}"
-            )
+            logger.error(f"Telegram publishing failed " f"for {lesson_id}: {e}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -357,9 +325,7 @@ class Publisher:
             return None
 
         except PublisherError as e:
-            logger.error(
-                f"Publisher error for {lesson_id}: {e}"
-            )
+            logger.error(f"Publisher error for {lesson_id}: {e}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -373,10 +339,7 @@ class Publisher:
             return None
 
         except Exception as e:
-            logger.exception(
-                f"Unexpected Telegram error "
-                f"for {lesson_id}"
-            )
+            logger.exception(f"Unexpected Telegram error " f"for {lesson_id}")
 
             self._record_failure(
                 lesson_id=lesson_id,
@@ -440,9 +403,7 @@ class Publisher:
                 ),
             )
 
-            logger.info(
-                f"Lesson recorded successfully: {lesson_id}"
-            )
+            logger.info(f"Lesson recorded successfully: {lesson_id}")
 
         except DatabaseError as e:
             # Telegram post already succeeded.
@@ -454,8 +415,7 @@ class Publisher:
 
         except Exception as e:
             logger.exception(
-                f"Unexpected database recording error "
-                f"for {lesson_id}: {e}"
+                f"Unexpected database recording error " f"for {lesson_id}: {e}"
             )
 
         return result
@@ -483,9 +443,7 @@ class Publisher:
             return None
 
         if not text or not text.strip():
-            logger.warning(
-                "Cannot publish empty custom post"
-            )
+            logger.warning("Cannot publish empty custom post")
             return None
 
         try:
@@ -496,45 +454,31 @@ class Publisher:
             )
 
             if not result:
-                logger.error(
-                    "Custom post failed: "
-                    "Telegram returned no response"
-                )
+                logger.error("Custom post failed: " "Telegram returned no response")
                 return None
 
             telegram_result = result.get("result")
 
             if not isinstance(telegram_result, dict):
-                logger.error(
-                    "Custom post response missing result"
-                )
+                logger.error("Custom post response missing result")
                 return None
 
             message_id = telegram_result.get("message_id")
 
             if message_id is None:
-                logger.error(
-                    "Custom post response missing message_id"
-                )
+                logger.error("Custom post response missing message_id")
                 return None
 
-            logger.info(
-                f"Custom post published. "
-                f"Message ID: {message_id}"
-            )
+            logger.info(f"Custom post published. " f"Message ID: {message_id}")
 
             return result
 
         except TelegramError as e:
-            logger.error(
-                f"Custom post failed: {e}"
-            )
+            logger.error(f"Custom post failed: {e}")
             return None
 
         except Exception as e:
-            logger.exception(
-                f"Unexpected custom post error: {e}"
-            )
+            logger.exception(f"Unexpected custom post error: {e}")
             return None
 
     # ============================================================
@@ -577,9 +521,7 @@ class Publisher:
             return False
 
         if not message_id or message_id <= 0:
-            logger.error(
-                f"Invalid message ID: {message_id}"
-            )
+            logger.error(f"Invalid message ID: {message_id}")
             return False
 
         # --------------------------------------------------------
@@ -599,15 +541,11 @@ class Publisher:
             )
 
         except DatabaseError as e:
-            logger.error(
-                f"Database group check failed: {e}"
-            )
+            logger.error(f"Database group check failed: {e}")
             return False
 
         if not group:
-            logger.warning(
-                f"Group not approved or disabled: {group_id}"
-            )
+            logger.warning(f"Group not approved or disabled: {group_id}")
             return False
 
         # --------------------------------------------------------
@@ -615,9 +553,7 @@ class Publisher:
         # --------------------------------------------------------
 
         if not bool(group.get("auto_share")):
-            logger.info(
-                f"Auto-share disabled for group: {group_id}"
-            )
+            logger.info(f"Auto-share disabled for group: {group_id}")
             return False
 
         # --------------------------------------------------------
@@ -633,30 +569,24 @@ class Publisher:
 
             if not result:
                 logger.error(
-                    f"Telegram returned no response "
-                    f"while sharing to {group_id}"
+                    f"Telegram returned no response " f"while sharing to {group_id}"
                 )
                 return False
 
             logger.info(
-                f"Message {message_id} shared "
-                f"successfully to group {group_id}"
+                f"Message {message_id} shared " f"successfully to group {group_id}"
             )
 
             return True
 
         except TelegramError as e:
             logger.error(
-                f"Failed to share message {message_id} "
-                f"to group {group_id}: {e}"
+                f"Failed to share message {message_id} " f"to group {group_id}: {e}"
             )
             return False
 
         except Exception as e:
-            logger.exception(
-                f"Unexpected group share error "
-                f"for {group_id}: {e}"
-            )
+            logger.exception(f"Unexpected group share error " f"for {group_id}: {e}")
             return False
 
     # ============================================================
@@ -710,20 +640,14 @@ class Publisher:
                 ),
             )
 
-            logger.info(
-                f"Failure recorded: {lesson_id}"
-            )
+            logger.info(f"Failure recorded: {lesson_id}")
 
         except DatabaseError as e:
-            logger.error(
-                f"Failed to record lesson failure "
-                f"{lesson_id}: {e}"
-            )
+            logger.error(f"Failed to record lesson failure " f"{lesson_id}: {e}")
 
         except Exception as e:
             logger.exception(
-                f"Unexpected failure-recording error "
-                f"for {lesson_id}: {e}"
+                f"Unexpected failure-recording error " f"for {lesson_id}: {e}"
             )
 
     # ============================================================
@@ -736,21 +660,18 @@ class Publisher:
 
         Safe to call multiple times.
         """
-              if self.database:
+        if self.database:
             try:
                 self.database.close()
-                logger.debug(
-                    "Publisher database connection closed"
-                )
+                logger.debug("Publisher database connection closed")
             except Exception as e:
-                logger.error(
-                    f"Failed to close database: {e}"
-                )
+                logger.error(f"Failed to close database: {e}")
 
 
 # ================================================================
 # FACTORY
 # ================================================================
+
 
 def create_publisher(
     config: Optional[Config] = None,
