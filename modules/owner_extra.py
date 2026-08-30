@@ -2,9 +2,6 @@
 """
 Extra Owner Commands for AI Teacher Bot.
 
-ဒီဖိုင်က Owner commands အသစ်တွေ ထည့်ဖို့ပဲ။
-owner.py ကို မပြင်ရဘူး — ဒီထဲမှာပဲ ထည့်ရုံပဲ။
-
 To add new command:
 1. Add method: def cmd_xxx(self, chat_id, args): ...
 2. Register in dispatch() method below.
@@ -244,7 +241,21 @@ class OwnerExtra:
             f"⏳ Pending: {stats.get('pending', 0)}",
         )
 
+           def cmd_emergency(self, chat_id: Any) -> None:
+        """Toggle emergency stop."""
+        if not self.safety:
+            self._send(chat_id, "❌ Safety manager not available")
+            return
 
+        current = self.safety.is_emergency_stopped()
+
+        if current:
+            self.safety.set_emergency_stop(False)
+            self._send(chat_id, "✅ Emergency stop DEACTIVATED")
+        else:
+            self.safety.set_emergency_stop(True)
+            self._send(chat_id, "🛑 Emergency stop ACTIVATED")
+            
 # ============================================================
 # FACTORY
 # ============================================================
@@ -267,3 +278,4 @@ def create_owner_extra(
         agent=agent,
         student_system=student_system,
     )
+    
