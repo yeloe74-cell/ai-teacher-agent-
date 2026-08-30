@@ -29,6 +29,7 @@ from config import Config, get_config
 from database import DatabaseInterface
 from modules.group_manager import GroupManager
 from modules.telegram_client import TelegramClient
+from modules.owner_extra import OwnerExtra
 
 logger = logging.getLogger(__name__)
 
