@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from config import Config, get_config
 from database import DatabaseInterface
 from modules.group_manager import GroupManager
+from modules.safety import SafetyManager
 from modules.telegram_client import TelegramClient
 from modules.teacher_agent import TeacherAgent
 from modules.student_system import StudentSystem
@@ -32,6 +33,7 @@ class OwnerExtra:
         groups: Optional[GroupManager] = None,
         agent: Optional[TeacherAgent] = None,
         student_system: Optional[StudentSystem] = None,
+        safety: Optional[SafetyManager] = None,
     ):
         self.config = config or get_config()
         self.database = database
@@ -39,6 +41,7 @@ class OwnerExtra:
         self.groups = groups
         self.agent = agent
         self.student_system = student_system
+        self.safety = safety
 
         logger.debug("OwnerExtra initialized")
 
@@ -96,6 +99,9 @@ class OwnerExtra:
             "/submissions": lambda: self.cmd_submissions(chat_id, args),
             "/review": lambda: self.cmd_review(chat_id, args, owner_id),
             "/projectstats": lambda: self.cmd_projectstats(chat_id),
+
+            # Part 8: Safety
+            "/emergency": lambda: self.cmd_emergency(chat_id),
         }
 
         handler = handlers.get(command)
@@ -240,7 +246,12 @@ class OwnerExtra:
             f"❌ Failed: {stats.get('failed', 0)}\n"
             f"⏳ Pending: {stats.get('pending', 0)}",
         )
-            def cmd_emergency(self, chat_id: Any) -> None:
+
+    # ========================================================
+    # SAFETY COMMANDS (Part 8)
+    # ========================================================
+
+    def cmd_emergency(self, chat_id: Any) -> None:
         """Toggle emergency stop."""
         if not self.safety:
             self._send(chat_id, "❌ Safety manager not available")
@@ -254,11 +265,11 @@ class OwnerExtra:
         else:
             self.safety.set_emergency_stop(True)
             self._send(chat_id, "🛑 Emergency stop ACTIVATED")
-            
+
+
 # ============================================================
 # FACTORY
 # ============================================================
-
 
 def create_owner_extra(
     config: Optional[Config] = None,
@@ -267,6 +278,7 @@ def create_owner_extra(
     groups: Optional[GroupManager] = None,
     agent: Optional[TeacherAgent] = None,
     student_system: Optional[StudentSystem] = None,
+    safety: Optional[SafetyManager] = None,
 ) -> OwnerExtra:
     """Factory function for OwnerExtra."""
     return OwnerExtra(
@@ -276,5 +288,5 @@ def create_owner_extra(
         groups=groups,
         agent=agent,
         student_system=student_system,
-    )
-    
+        safety=safety,
+            )
